@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Herd Mentality · Questions</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="editor">
+      <header class="editor-header">
+        <div>
+          <a class="back" id="back" href="/">← Back to host screen</a>
+          <h1>Questions</h1>
+          <p class="status" id="summary"></p>
+        </div>
+        <div class="editor-actions">
+          <button type="button" class="secondary" id="reset">Reset to defaults</button>
+          <button type="button" id="save" disabled>Save</button>
+        </div>
+      </header>
+
+      <p class="notice" id="locked" hidden>
+        A game is in progress. Questions can only be edited in the lobby — restart the game from the host menu to
+        make changes.
+      </p>
+
+      <label class="setting">
+        Seconds per question
+        <input type="number" id="seconds" min="5" max="120" step="1" />
+      </label>
+
+      <ol class="q-list" id="list"></ol>
+
+      <div class="add-row">
+        <button type="button" class="secondary" data-add="choice">+ Multiple choice</button>
+        <button type="button" class="secondary" data-add="text">+ Free text</button>
+      </div>
+
+      <p class="status" id="status" role="status"></p>
+    </main>
+
+    <template id="q-template">
+      <li class="q-item">
+        <div class="q-item-head">
+          <span class="q-index"></span>
+          <select class="q-type" aria-label="Question type">
+            <option value="choice">Multiple choice</option>
+            <option value="text">Free text</option>
+          </select>
+          <div class="q-item-buttons">
+            <button type="button" class="icon" data-move="-1" aria-label="Move up">↑</button>
+            <button type="button" class="icon" data-move="1" aria-label="Move down">↓</button>
+            <button type="button" class="icon danger" data-remove aria-label="Remove question">✕</button>
+          </div>
+        </div>
+        <input class="q-text" maxlength="140" placeholder="Question" aria-label="Question text" />
+        <label class="q-options-label">
+          Options — one per line
+          <textarea class="q-options" rows="4" placeholder="Option A&#10;Option B&#10;Option C"></textarea>
+        </label>
+      </li>
+    </template>
+
+    <script src="/questions.js" type="module"></script>
+  </body>
+</html>

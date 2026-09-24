@@ -4,16 +4,38 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Herd Mentality · Host</title>
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
-    <main class="host">
+  <body class="host-body">
+    <header class="topbar">
+      <span class="brand">Herd Mentality</span>
+      <span class="progress" id="progress"></span>
+      <div class="actions">
+        <span class="status" id="status">Connecting…</span>
+        <button type="button" id="primary" hidden></button>
+        <details class="menu" id="menu">
+          <summary aria-label="Game menu">•••</summary>
+          <div class="menu-items">
+            <a id="edit-questions" href="/questions">Edit questions</a>
+            <button type="button" data-cmd="restart">Restart game (keep players)</button>
+            <button type="button" data-cmd="reset" class="danger">Reset everything (clear players)</button>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <p class="denied" id="denied" hidden>
+      This is the host screen. Open it on the laptop running the game, or use the host link printed in
+      the terminal.
+    </p>
+
+    <!-- LOBBY -->
+    <main class="stage lobby-stage" id="phase-lobby" hidden>
       <section class="join-panel">
-        <p class="eyebrow">Herd Mentality</p>
         <h1>Scan to join the herd</h1>
-        <div class="qr" id="qr" aria-label="QR code to join the game"></div>
-        <p class="join-url" id="join-url">Loading…</p>
-        <p class="status" id="status">Connecting…</p>
+        <div class="qr" data-qr aria-label="QR code to join the game"></div>
+        <p class="join-url" data-join-url>Loading…</p>
       </section>
 
       <section class="lobby" aria-live="polite">
@@ -23,7 +45,49 @@
         </div>
         <p class="empty" id="empty">Waiting for the first player to join…</p>
         <ul class="players" id="players"></ul>
+        <p class="hint" id="lobby-hint"></p>
       </section>
+    </main>
+
+    <!-- QUESTION -->
+    <main class="stage question-stage" id="phase-question" hidden>
+      <div class="question-main">
+        <p class="eyebrow" id="q-kind"></p>
+        <h1 class="question-text" id="q-text"></h1>
+        <ol class="options" id="q-options"></ol>
+        <p class="free-text-hint" id="q-free">Type your answer on your phone</p>
+      </div>
+      <aside class="question-side">
+        <div class="timer" id="timer" aria-live="off">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle class="track" cx="50" cy="50" r="44" />
+            <circle class="ring" id="timer-ring" cx="50" cy="50" r="44" />
+          </svg>
+          <span id="timer-text">20</span>
+        </div>
+        <p class="answered"><strong id="answered">0</strong> of <span id="online">0</span> answered</p>
+        <div class="mini-join">
+          <div class="qr small" data-qr></div>
+          <p>Late? Scan to join</p>
+        </div>
+      </aside>
+    </main>
+
+    <!-- REVEAL -->
+    <main class="stage reveal-stage" id="phase-reveal" hidden>
+      <p class="eyebrow" id="r-kind"></p>
+      <h1 class="question-text small" id="r-text"></h1>
+      <ol class="bars" id="bars"></ol>
+      <p class="reveal-summary" id="r-summary"></p>
+    </main>
+
+    <!-- LEADERBOARD + FINAL -->
+    <main class="stage board-stage" id="phase-board" hidden>
+      <p class="eyebrow" id="b-kind"></p>
+      <h1 id="b-title">Rankings</h1>
+      <ol class="top3" id="top3"></ol>
+      <ol class="ranks" id="ranks"></ol>
+      <p class="empty" id="b-empty" hidden>No players yet.</p>
     </main>
 
     <script src="/host.js" type="module"></script>

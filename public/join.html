@@ -4,36 +4,68 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Join the herd</title>
+    <link rel="icon" href="data:," />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <main class="phone">
-      <div>
+      <header class="phone-header">
         <p class="eyebrow">Herd Mentality</p>
-        <h1 id="heading">Join the herd</h1>
-      </div>
+        <p class="me" id="me" hidden></p>
+      </header>
 
-      <form id="join-form" autocomplete="off">
-        <label for="name">Your name</label>
-        <input
-          id="name"
-          name="name"
-          maxlength="24"
-          placeholder="e.g. Sam"
-          autocapitalize="words"
-          enterkeyhint="go"
-          required
-        />
-        <button type="submit" id="join-button">Join</button>
-        <p class="status" id="status" role="status"></p>
-      </form>
+      <!-- Join -->
+      <section id="view-join" hidden>
+        <h1>Join the herd</h1>
+        <p class="status" id="join-note"></p>
+        <form id="join-form" autocomplete="off">
+          <label for="name">Your name</label>
+          <input id="name" name="name" maxlength="24" placeholder="e.g. Sam" autocapitalize="words" enterkeyhint="go" required />
+          <button type="submit" id="join-button">Join</button>
+        </form>
+      </section>
 
-      <div class="card" id="joined" hidden>
+      <!-- Waiting in lobby -->
+      <section class="card" id="view-lobby" hidden>
         <p class="eyebrow">You're in</p>
-        <p class="name" id="joined-name"></p>
+        <p class="big accent" id="lobby-name"></p>
         <p class="status">Look up at the big screen — the game will start soon.</p>
-      </div>
-      <button type="button" class="link-button" id="change-name" hidden>Change name</button>
+        <button type="button" class="link-button" id="change-name">Change name</button>
+      </section>
+
+      <!-- Question -->
+      <section id="view-question" hidden>
+        <div class="q-head">
+          <p class="eyebrow" id="q-num"></p>
+          <span class="phone-timer" id="q-timer"></span>
+        </div>
+        <h1 id="q-text"></h1>
+        <div class="choices" id="q-choices"></div>
+        <form id="q-form" autocomplete="off" hidden>
+          <input id="q-input" maxlength="60" placeholder="Your answer" autocapitalize="sentences" enterkeyhint="send" />
+          <button type="submit">Lock it in</button>
+        </form>
+        <div class="card" id="q-locked" hidden>
+          <p class="eyebrow">Locked in</p>
+          <p class="big" id="q-locked-answer"></p>
+          <p class="status">Waiting for the rest of the herd…</p>
+        </div>
+      </section>
+
+      <!-- Reveal -->
+      <section class="card result" id="view-reveal" hidden>
+        <p class="result-title" id="r-title"></p>
+        <p class="status" id="r-detail"></p>
+      </section>
+
+      <!-- Rankings / final -->
+      <section class="card" id="view-rank" hidden>
+        <p class="eyebrow" id="k-label">Your ranking</p>
+        <p class="rank-big" id="k-rank"></p>
+        <p class="status" id="k-detail"></p>
+      </section>
+
+      <p class="status error" id="error" role="alert"></p>
     </main>
 
     <script src="/join.js" type="module"></script>
