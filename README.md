@@ -80,9 +80,9 @@ This lives in `src/matching.js`.
 
 ## Questions
 
-The default set of 12 lives in `src/default-questions.js`: 8 multiple choice, then 4 free text. From the host screen, open **••• → Edit questions** to add, remove or reorder questions, change options (any number from 2 to 24), and set both timers. Your edits are saved to `data/questions.json`, and **Reset to defaults** brings back the built-in set. Every game uses the current question list.
+The default set of 13 lives in `src/default-questions.js`: 9 multiple choice, then 4 free text. From the host screen, open **••• → Edit questions** to add, remove or reorder questions, change options (any number from 2 to 24), and set both timers. Your edits are saved to `data/questions.json`, and **Reset to defaults** brings back the built-in set. Every game uses the current question list.
 
-For a ~5 minute icebreaker, aim for 6–8 questions. The 12 defaults take roughly 6½ minutes, so trim a few if you're tight on time. The editor shows a play-time estimate as you edit.
+For a ~5 minute icebreaker, aim for 6–8 questions. The 13 defaults take roughly 7 minutes, so trim a few if you're tight on time. The editor shows a play-time estimate as you edit.
 
 ## Storage
 

@@ -17,15 +17,15 @@ test('fallback answers match the default question when known', () => {
 });
 
 test('bot brain uses the LLM and tops up short replies', async () => {
-  const brain = createBotBrain({ log: quiet, converse: async () => ({ text: '{"answers":["Gandalf"]}' }) });
-  const answers = await brain.textAnswers('Name a famous wizard', 3);
+  const brain = createBotBrain({ log: quiet, converse: async () => ({ text: '{"answers":["Kitchen"]}' }) });
+  const answers = await brain.textAnswers('Favourite room in a house', 3);
   assert.equal(answers.length, 3);
-  assert.ok(answers.includes('Gandalf'));
+  assert.ok(answers.includes('Kitchen'));
 });
 
 test('bot brain falls back when the LLM fails or is slow', async () => {
   const failing = createBotBrain({ log: quiet, converse: async () => { throw new Error('expired'); } });
-  assert.equal((await failing.textAnswers('Name a famous wizard', 2)).length, 2);
+  assert.equal((await failing.textAnswers('Favourite room in a house', 2)).length, 2);
   const slow = createBotBrain({
     log: quiet,
     timeoutMs: 30,

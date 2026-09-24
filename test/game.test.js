@@ -79,12 +79,12 @@ test('rankPlayers uses competition ranking for ties', () => {
   );
 });
 
-test('default questions: 12 total, last 4 free text, 15s/20s timers', () => {
+test('default questions: 13 total, last 4 free text, 15s/20s timers', () => {
   const lib = validateLibrary(defaultLibrary());
-  assert.equal(lib.questions.length, 12);
+  assert.equal(lib.questions.length, 13);
   assert.deepEqual(
     lib.questions.map((q) => q.type),
-    [...Array(8).fill('choice'), ...Array(4).fill('text')],
+    [...Array(9).fill('choice'), ...Array(4).fill('text')],
   );
   assert.deepEqual(lib.settings, { choiceSeconds: 15, textSeconds: 20 });
 });

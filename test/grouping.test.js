@@ -174,7 +174,7 @@ test('bots pick valid options for multiple choice and fall back if the brain fai
     botDelayMs: [5, 20],
     questions: [
       { type: 'choice', text: 'Cats or dogs?', options: ['Cats', 'Dogs', 'No pets'] },
-      { type: 'text', text: 'Name a famous wizard' },
+      { type: 'text', text: 'Favourite room in a house' },
     ],
   });
   game.join('Jeff');

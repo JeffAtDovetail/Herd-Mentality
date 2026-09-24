@@ -43,6 +43,11 @@ export const DEFAULT_QUESTIONS = [
   },
   {
     type: 'choice',
+    text: 'Favourite time of the day',
+    options: ['Sunrise', 'Morning', 'Afternoon', 'Evening', 'Sunset', 'Midnight'],
+  },
+  {
+    type: 'choice',
     text: 'What is the favourite Dovetail value?',
     options: [
       'Put the customer first',
@@ -87,7 +92,7 @@ export const DEFAULT_QUESTIONS = [
   },
   {
     type: 'text',
-    text: 'Name a famous wizard',
+    text: 'Favourite room in a house',
   },
   {
     type: 'text',

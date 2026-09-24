@@ -12,7 +12,7 @@ const DEFAULT_MODEL_ID = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
 const FALLBACK_ANSWERS = {
   'name a breakfast food': ['Toast', 'Eggs', 'Pancakes', 'Bacon', 'Cereal', 'Avocado toast', 'Porridge', 'Croissant'],
   'name a country you d love to travel to': ['Japan', 'Italy', 'Iceland', 'Greece', 'Canada', 'Peru', 'France', 'Japan'],
-  'name a famous wizard': ['Gandalf', 'Harry Potter', 'Merlin', 'Dumbledore', 'Gandalf', 'Doctor Strange', 'Voldemort'],
+  'favourite room in a house': ['Living room', 'Kitchen', 'Bedroom', 'Lounge', 'Kitchen', 'Bathroom', 'Study', 'Bedroom'],
   'most well known person': ['Taylor Swift', 'Barack Obama', 'Elon Musk', 'Beyoncé', 'Jesus', 'Michael Jackson', 'Obama'],
 };
 const GENERIC_ANSWERS = ['Pizza', 'Blue', 'Dogs', 'Coffee', 'Friday', 'The beach', 'Chocolate', 'Summer', 'Music'];
