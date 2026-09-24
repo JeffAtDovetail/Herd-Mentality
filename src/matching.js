@@ -97,7 +97,17 @@ export function groupFreeText(answers) {
       const [label] = [...c.buckets[0].spellings.entries()].sort(
         (x, y) => y[1] - x[1] || capitalised(x[0]) - capitalised(y[0]) || x[0].localeCompare(y[0]),
       )[0];
-      return { label: prettyLabel(label), playerIds: c.buckets.flatMap((b) => b.playerIds) };
+      // Other spellings that were merged in, so the reveal can show why they counted.
+      const seen = new Set([label.toLowerCase()]);
+      const variants = [];
+      for (const b of c.buckets) {
+        for (const s of b.spellings.keys()) {
+          if (seen.has(s.toLowerCase())) continue;
+          seen.add(s.toLowerCase());
+          variants.push(s);
+        }
+      }
+      return { label: prettyLabel(label), variants, playerIds: c.buckets.flatMap((b) => b.playerIds) };
     })
     .sort((x, y) => y.playerIds.length - x.playerIds.length || x.label.localeCompare(y.label));
 }

@@ -98,6 +98,14 @@ function render(s) {
 }
 
 function renderLobby(s) {
+  // Don't overwrite a timer input while the host is typing in it.
+  for (const [id, value] of [
+    ['t-choice', s.settings.choiceSeconds],
+    ['t-text', s.settings.textSeconds],
+  ]) {
+    if (document.activeElement !== $(id)) $(id).value = value;
+  }
+
   const list = $('players');
   $('count').textContent = String(s.onlineCount);
   $('empty').hidden = s.players.length > 0;
@@ -159,11 +167,16 @@ function renderReveal(s) {
   $('r-kind').textContent = r.herdLabels.length ? 'The herd says…' : 'No herd this time';
   $('r-text').textContent = q.text;
 
-  let groups = r.answeredCount ? r.groups : [];
+  const isText = q.type === 'text';
+  const allGroups = r.answeredCount ? r.groups : [];
+  let groups = allGroups;
   if (q.type === 'choice' && groups.length > 8) groups = groups.filter((g) => g.count > 0);
-  const hiddenCount = Math.max(0, groups.length - 10);
-  groups = groups.slice(0, 10);
+  // Free text: a few bars for the top answers, then every answer in the list below.
+  const barLimit = isText ? 5 : 10;
+  const hiddenCount = isText ? 0 : Math.max(0, groups.length - barLimit);
+  groups = groups.slice(0, barLimit);
   const max = Math.max(1, ...groups.map((g) => g.count));
+  renderAllAnswers(isText ? allGroups : []);
 
   const bars = $('bars');
   bars.replaceChildren();
@@ -185,6 +198,29 @@ function renderReveal(s) {
     : r.answeredCount
       ? 'Everyone gave a different answer — nobody scores.'
       : '';
+}
+
+/** Every free-text answer group, most popular first, with merged spellings shown. */
+function renderAllAnswers(groups) {
+  const section = $('all-answers');
+  section.hidden = groups.length === 0;
+  if (!groups.length) return;
+  const total = groups.reduce((n, g) => n + g.count, 0);
+  $('all-answers-title').textContent =
+    `All answers · ${total} from ${groups.length} ${groups.length === 1 ? 'group' : 'groups'}`;
+
+  const list = $('answer-list');
+  list.replaceChildren();
+  // Dense lists get smaller text so ~100 answers still fit on a projector.
+  list.classList.toggle('dense', groups.length > 24);
+  groups.forEach((g, i) => {
+    const li = el('li', `answer${g.isHerd ? ' herd' : ''}`);
+    li.style.animationDelay = `${Math.min(i, 30) * 25}ms`;
+    li.append(el('span', 'answer-label', g.label));
+    if (g.count > 1) li.append(el('span', 'answer-count', `×${g.count}`));
+    if (g.variants.length) li.append(el('span', 'answer-variants', g.variants.join(', ')));
+    list.append(li);
+  });
 }
 
 const MEDALS = ['gold', 'silver', 'bronze'];
@@ -255,6 +291,29 @@ document.querySelectorAll('[data-cmd]').forEach((btn) =>
     if (confirm(message)) command(btn.dataset.cmd);
   }),
 );
+
+// Timers: saved as soon as a value is changed (blur / Enter), used for the next game.
+function saveTimers() {
+  const choiceSeconds = Number($('t-choice').value);
+  const textSeconds = Number($('t-text').value);
+  const valid = [choiceSeconds, textSeconds].every((n) => Number.isFinite(n) && n >= 5 && n <= 120);
+  if (!valid) {
+    $('t-status').textContent = 'Timers must be 5–120 seconds.';
+    $('t-status').classList.add('error');
+    return;
+  }
+  command('settings', { settings: { choiceSeconds, textSeconds } });
+  $('t-status').textContent = 'Saved ✓';
+  $('t-status').classList.remove('error');
+  setTimeout(() => ($('t-status').textContent = ''), 1500);
+}
+$('t-choice').addEventListener('change', saveTimers);
+$('t-text').addEventListener('change', saveTimers);
+$('timer-settings').addEventListener('submit', (event) => {
+  event.preventDefault();
+  saveTimers();
+  document.activeElement.blur();
+});
 
 $('players').addEventListener('click', (event) => {
   const li = event.target.closest('.player');

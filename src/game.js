@@ -19,12 +19,30 @@ function cleanText(value, max) {
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+/** Validate timer settings. Missing values fall back to the defaults. */
+export function validateSettings(input = {}) {
+  const read = (key, label) => {
+    // Older saves used a single secondsPerQuestion for everything.
+    const raw = input[key] ?? input.secondsPerQuestion ?? DEFAULT_SETTINGS[key];
+    const seconds = Number(raw);
+    if (!Number.isFinite(seconds) || seconds < 5 || seconds > 120) {
+      throw new Error(`${label} timer must be between 5 and 120 seconds.`);
+    }
+    return Math.round(seconds);
+  };
+  return {
+    choiceSeconds: read('choiceSeconds', 'Multiple choice'),
+    textSeconds: read('textSeconds', 'Free text'),
+  };
+}
+
+export function secondsFor(question, settings) {
+  return question.type === 'choice' ? settings.choiceSeconds : settings.textSeconds;
+}
+
 /** Validate and normalise a question library; throws with a readable message on bad input. */
 export function validateLibrary(input) {
-  const seconds = Number(input?.settings?.secondsPerQuestion);
-  if (!Number.isFinite(seconds) || seconds < 5 || seconds > 120) {
-    throw new Error('Seconds per question must be between 5 and 120.');
-  }
+  const settings = validateSettings(input?.settings);
   if (!Array.isArray(input?.questions)) throw new Error('Questions must be a list.');
   if (input.questions.length > 50) throw new Error('That is a lot of questions — keep it under 50.');
 
@@ -42,7 +60,7 @@ export function validateLibrary(input) {
     return { type: 'choice', text, options };
   });
 
-  return { settings: { secondsPerQuestion: Math.round(seconds) }, questions };
+  return { settings, questions };
 }
 
 export function defaultLibrary() {
@@ -137,6 +155,7 @@ export class Game {
 
     this.library = this.loadLibrary();
     this.state = store.read('game.json', null) ?? freshGame();
+    if (this.state.settings) this.state.settings = validateSettings(this.state.settings); // older saves
     if (this.state.phase === 'question') this.scheduleClose(); // resume a timer after restart
   }
 
@@ -177,6 +196,15 @@ export class Game {
 
   resetLibrary() {
     return this.setLibrary(defaultLibrary());
+  }
+
+  /** Change just the timers (from the lobby screen) without touching the questions. */
+  setSettings(input) {
+    if (this.state.phase !== 'lobby') throw new Error('Timers can only be changed before the game starts.');
+    this.library.settings = validateSettings({ ...this.library.settings, ...input });
+    this.store.write('questions.json', this.library);
+    this.onChange();
+    return this.library.settings;
   }
 
   get currentQuestion() {
@@ -245,7 +273,7 @@ export class Game {
     s.questionIndex = index;
     s.answers[index] = {};
     s.results[index] = null;
-    s.deadline = Date.now() + s.settings.secondsPerQuestion * 1000;
+    s.deadline = Date.now() + secondsFor(s.questions[index], s.settings) * 1000;
     this.scheduleClose();
     this.changed();
   }
@@ -338,6 +366,7 @@ export class Game {
       isLastQuestion: inGame && this.isLastQuestion,
       players,
       onlineCount: players.filter((p) => p.connected).length,
+      settings: this.library.settings, // timers for the next game (editable in the lobby)
     };
 
     const q = this.currentQuestion;
@@ -345,7 +374,7 @@ export class Game {
       Object.assign(view, {
         question: q,
         deadline: s.deadline,
-        durationMs: s.settings.secondsPerQuestion * 1000,
+        durationMs: secondsFor(q, s.settings) * 1000,
         answeredCount: Object.keys(s.answers[s.questionIndex] ?? {}).length,
       });
     }
@@ -354,7 +383,12 @@ export class Game {
       Object.assign(view, {
         question: q,
         result: {
-          groups: r.groups.map((g) => ({ label: g.label, count: g.playerIds.length, isHerd: g.isHerd })),
+          groups: r.groups.map((g) => ({
+            label: g.label,
+            count: g.playerIds.length,
+            isHerd: g.isHerd,
+            variants: g.variants ?? [],
+          })),
           herdLabels: r.herdLabels,
           pointsAwarded: r.herdPlayerIds.length,
           answeredCount: r.answeredCount,
@@ -399,7 +433,7 @@ export class Game {
       Object.assign(view, {
         question: { type: q.type, text: q.text, options: q.options },
         deadline: s.deadline,
-        durationMs: s.settings.secondsPerQuestion * 1000,
+        durationMs: secondsFor(q, s.settings) * 1000,
         myAnswer: answerLabel,
         myChoice: q.type === 'choice' ? (mine ?? null) : null,
       });

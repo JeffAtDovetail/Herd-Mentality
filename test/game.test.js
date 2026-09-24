@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { groupFreeText, normalizeAnswer, isSameAnswer } from '../src/matching.js';
-import { scoreQuestion, rankPlayers, validateLibrary, defaultLibrary } from '../src/game.js';
+import { scoreQuestion, rankPlayers, validateLibrary, validateSettings, secondsFor, defaultLibrary } from '../src/game.js';
 
 test('normalizeAnswer strips case, accents, punctuation and articles', () => {
   assert.equal(normalizeAnswer('  The Café!! '), 'cafe');
@@ -34,6 +34,8 @@ test('groupFreeText clusters near-misses and labels with the most common spellin
   assert.equal(groups[0].label, 'Pancakes');
   assert.deepEqual(groups[1].playerIds.sort(), ['e', 'f']);
   assert.equal(groups[2].label, 'Eggs');
+  // merged spellings are reported so the reveal can show them
+  assert.deepEqual(groups[0].variants.sort(), ['Pancake', 'pancakse']);
 });
 
 test('scoreQuestion: choice — biggest group scores', () => {
@@ -77,13 +79,28 @@ test('rankPlayers uses competition ranking for ties', () => {
   );
 });
 
-test('default questions are valid', () => {
+test('default questions: 12 total, last 4 free text, 15s/20s timers', () => {
   const lib = validateLibrary(defaultLibrary());
-  assert.ok(lib.questions.length >= 6);
+  assert.equal(lib.questions.length, 12);
+  assert.deepEqual(
+    lib.questions.map((q) => q.type),
+    [...Array(8).fill('choice'), ...Array(4).fill('text')],
+  );
+  assert.deepEqual(lib.settings, { choiceSeconds: 15, textSeconds: 20 });
+});
+
+test('timer settings: per-type seconds, defaults, and legacy single value', () => {
+  assert.deepEqual(validateSettings({}), { choiceSeconds: 15, textSeconds: 20 });
+  assert.deepEqual(validateSettings({ secondsPerQuestion: 25 }), { choiceSeconds: 25, textSeconds: 25 });
+  assert.deepEqual(validateSettings({ choiceSeconds: 10, textSeconds: 30 }), { choiceSeconds: 10, textSeconds: 30 });
+  assert.throws(() => validateSettings({ choiceSeconds: 2 }));
+  const settings = { choiceSeconds: 10, textSeconds: 30 };
+  assert.equal(secondsFor({ type: 'choice' }, settings), 10);
+  assert.equal(secondsFor({ type: 'text' }, settings), 30);
 });
 
 test('validateLibrary rejects bad questions', () => {
-  const settings = { secondsPerQuestion: 20 };
+  const settings = { choiceSeconds: 15, textSeconds: 20 };
   assert.throws(() => validateLibrary({ settings, questions: [{ type: 'choice', text: 'Q', options: ['one'] }] }));
   assert.throws(() => validateLibrary({ settings, questions: [{ type: 'text', text: '  ' }] }));
   assert.throws(() => validateLibrary({ settings: { secondsPerQuestion: 1 }, questions: [] }));

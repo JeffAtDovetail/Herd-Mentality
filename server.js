@@ -222,6 +222,8 @@ function handleHostCommand(ws, msg) {
       return game.next();
     case 'close':
       return game.close();
+    case 'settings':
+      return game.setSettings(msg.settings);
     case 'restart':
       return game.restart({ clearPlayers: false });
     case 'reset':

@@ -26,10 +26,16 @@
         make changes.
       </p>
 
-      <label class="setting">
-        Seconds per question
-        <input type="number" id="seconds" min="5" max="120" step="1" />
-      </label>
+      <div class="settings-row">
+        <label class="setting">
+          Multiple choice timer
+          <input type="number" id="choice-seconds" min="5" max="120" step="1" /> sec
+        </label>
+        <label class="setting">
+          Free text timer
+          <input type="number" id="text-seconds" min="5" max="120" step="1" /> sec
+        </label>
+      </div>
 
       <ol class="q-list" id="list"></ol>
 

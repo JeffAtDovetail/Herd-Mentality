@@ -360,6 +360,42 @@ button.secondary {
   background: var(--offline);
 }
 
+/* Timer settings sit at the bottom of the lobby column. */
+.timer-settings {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.timer-settings label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.timer-settings input {
+  font: inherit;
+  width: 72px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-settings span:not(.eyebrow):not(.status) {
+  color: var(--muted);
+  font-weight: 500;
+}
+
 /* --- Question ------------------------------------------------------- */
 
 .question-stage {
@@ -608,6 +644,79 @@ button.secondary {
   font-weight: 700;
   color: var(--accent);
   margin-top: 8px;
+}
+
+/* Free text: every answer, most popular first */
+.all-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.answer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.answer {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  max-width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: clamp(1rem, 1.4vw, 1.3rem);
+  animation: fade-up 300ms ease-out both;
+}
+
+.answer.herd {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.answer-label {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.answer.herd .answer-label,
+.answer.herd .answer-count {
+  color: var(--accent);
+}
+
+.answer-count {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.answer-variants {
+  font-size: 0.75em;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.answer-variants::before {
+  content: 'incl. ';
+}
+
+.answer-list.dense {
+  gap: 6px;
+}
+
+.answer-list.dense .answer {
+  padding: 5px 10px;
+  font-size: clamp(0.85rem, 1.05vw, 1rem);
 }
 
 /* --- Leaderboard ---------------------------------------------------- */
@@ -1037,6 +1146,12 @@ button.secondary {
 
 .setting input {
   width: 90px;
+}
+
+.settings-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 32px;
 }
 
 .q-list {

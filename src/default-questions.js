@@ -5,31 +5,41 @@
 // type: 'text'   -> players type a free-text answer, matched with fuzzy text matching
 
 export const DEFAULT_SETTINGS = {
-  secondsPerQuestion: 20,
+  choiceSeconds: 15, // timer for multiple-choice questions
+  textSeconds: 20, // timer for free-text questions (typing takes longer)
 };
 
 export const DEFAULT_QUESTIONS = [
+  // --- Multiple choice ------------------------------------------------------
   {
     type: 'choice',
     text: 'Cats or dogs?',
-    options: ['Cats', 'Dogs', 'Neither'],
-  },
-  {
-    type: 'text',
-    text: 'Name a breakfast food',
-  },
-  {
-    type: 'text',
-    text: 'Name a country you’d love to travel to',
+    options: ['Cats', 'Dogs', 'No pets'],
   },
   {
     type: 'choice',
-    text: 'Best sport to watch live',
-    options: ['Rugby league', 'AFL', 'Cricket', 'Football (soccer)', 'Tennis', 'Basketball'],
+    text: 'Best pizza topping',
+    options: ['Pepperoni', 'Margherita', 'Hawaiian', 'Mushroom', 'Meat lovers', 'BBQ chicken'],
   },
   {
-    type: 'text',
-    text: 'Name a musical instrument',
+    type: 'choice',
+    text: 'Favourite physical activity',
+    options: ['Running', 'Tennis', 'Basketball', 'Soccer / Football', 'Swimming', 'Gym', 'Yoga / Pilates', 'Cycling'],
+  },
+  {
+    type: 'choice',
+    text: 'Best decade for music',
+    options: ['70s', '80s', '90s', '2000s', '2010s'],
+  },
+  {
+    type: 'choice',
+    text: 'Favourite meat',
+    options: ['Chicken', 'Beef', 'Pork', 'Lamb', 'Seafood', 'None — I’m veggie'],
+  },
+  {
+    type: 'choice',
+    text: 'Dream holiday',
+    options: ['Beach', 'Mountains', 'City break'],
   },
   {
     type: 'choice',
@@ -41,10 +51,6 @@ export const DEFAULT_QUESTIONS = [
       'Do the thing',
       'Open by default',
     ],
-  },
-  {
-    type: 'text',
-    text: 'Name a famous wizard',
   },
   {
     type: 'choice',
@@ -68,5 +74,23 @@ export const DEFAULT_QUESTIONS = [
       'Boiler Room',
       'Wildflower',
     ],
+  },
+
+  // --- Free text ------------------------------------------------------------
+  {
+    type: 'text',
+    text: 'Name a breakfast food',
+  },
+  {
+    type: 'text',
+    text: 'Name a country you’d love to travel to',
+  },
+  {
+    type: 'text',
+    text: 'Name a famous wizard',
+  },
+  {
+    type: 'text',
+    text: 'Most well known person',
   },
 ];

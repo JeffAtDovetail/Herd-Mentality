@@ -46,6 +46,22 @@
         <p class="empty" id="empty">Waiting for the first player to join…</p>
         <ul class="players" id="players"></ul>
         <p class="hint" id="lobby-hint"></p>
+
+        <form class="timer-settings" id="timer-settings" autocomplete="off">
+          <span class="eyebrow">Timers for this game</span>
+          <label>
+            Multiple choice
+            <input type="number" id="t-choice" min="5" max="120" step="1" required />
+            <span>sec</span>
+          </label>
+          <label>
+            Free text
+            <input type="number" id="t-text" min="5" max="120" step="1" required />
+            <span>sec</span>
+          </label>
+          <span class="status" id="t-status" role="status"></span>
+          <button type="submit" hidden>Save timers</button>
+        </form>
       </section>
     </main>
 
@@ -79,6 +95,10 @@
       <h1 class="question-text small" id="r-text"></h1>
       <ol class="bars" id="bars"></ol>
       <p class="reveal-summary" id="r-summary"></p>
+      <section class="all-answers" id="all-answers" hidden>
+        <p class="eyebrow" id="all-answers-title">All answers</p>
+        <ul class="answer-list" id="answer-list"></ul>
+      </section>
     </main>
 
     <!-- LEADERBOARD + FINAL -->

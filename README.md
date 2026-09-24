@@ -15,13 +15,14 @@ Open the **host screen** at <http://localhost:7420> on the laptop running the ga
 
 | Step | Host screen | Phones |
 | --- | --- | --- |
-| **Lobby** | QR code and the players who've joined. Click a name to remove it. | Enter a name |
+| **Lobby** | QR code, the players who've joined (click a name to remove it) and the timers for this game | Enter a name |
 | **Question** | Question, options, countdown, answered count | Tap an option or type an answer |
-| **Reveal** | Answers as bars; the herd answer is highlighted | "You're in the herd! +1" or "You strayed…" |
+| **Reveal** | Answers as bars; the herd answer is highlighted. Free-text questions also list every answer, with merged spellings. | "You're in the herd! +1" or "You strayed…" |
 | **Rankings** | Top 10, with the top 3 highlighted in gold, silver and bronze | Your rank and points |
 | **Final results** | Winner, plus the top 10 | Your final rank |
 
 - **Advancing:** use the green button (top right), or press **Space**, **Enter** or **→** to drive it like a slide deck.
+- **Timers:** multiple-choice questions default to 15 seconds and free-text questions to 20. Change either in the **Timers for this game** box in the lobby before you start; the change is saved and used for the game you start next.
 - **Closing answers:** answers close when the timer runs out, when every connected player has answered, or when you click **Close answers**.
 - **Late joiners:** people can join mid-game. The question screen shows a small QR code, and late joiners play from the next question.
 - **Host menu (•••):**
@@ -50,9 +51,9 @@ This lives in `src/matching.js`. It's the natural place to plug in an LLM later.
 
 ## Questions
 
-The default set lives in `src/default-questions.js`. From the host screen, open **••• → Edit questions** to add, remove or reorder questions, change options (any number from 2 to 24), and set the seconds per question. Your edits are saved to `data/questions.json`, and **Reset to defaults** brings back the built-in set. Every game uses the current question list.
+The default set of 12 lives in `src/default-questions.js`: 8 multiple choice, then 4 free text. From the host screen, open **••• → Edit questions** to add, remove or reorder questions, change options (any number from 2 to 24), and set both timers. Your edits are saved to `data/questions.json`, and **Reset to defaults** brings back the built-in set. Every game uses the current question list.
 
-For a ~5 minute icebreaker, aim for **6–8 questions at ~20 seconds each**. The editor shows a rough play-time estimate.
+For a ~5 minute icebreaker, aim for 6–8 questions. The 12 defaults take roughly 6½ minutes, so trim a few if you're tight on time. The editor shows a play-time estimate as you edit.
 
 ## Storage
 
@@ -61,7 +62,7 @@ There's no database. Everything is saved as JSON in `data/` (git-ignored) after 
 | File | Contents |
 | --- | --- |
 | `data/game.json` | The current game: players, answers, results and phase. If the server crashes or you restart it, it resumes exactly where it was, including a running countdown. |
-| `data/questions.json` | Your edited question list |
+| `data/questions.json` | Your edited question list and timers |
 | `data/games/*.json` | An archive of each finished or restarted game, with its final leaderboard |
 | `data/host-key.json` | The key for hosting from another device |
 

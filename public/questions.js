@@ -3,7 +3,7 @@ const key = new URLSearchParams(location.search).get('key');
 const api = (path) => (key ? `${path}?key=${encodeURIComponent(key)}` : path);
 if (key) $('back').href = `/?key=${encodeURIComponent(key)}`;
 
-let library = { settings: { secondsPerQuestion: 20 }, questions: [] };
+let library = { settings: { choiceSeconds: 15, textSeconds: 20 }, questions: [] };
 let editable = true;
 let dirty = false;
 
@@ -34,7 +34,10 @@ function readForm() {
       .filter(Boolean);
     return { type, text, options };
   });
-  return { settings: { secondsPerQuestion: Number($('seconds').value) }, questions };
+  return {
+    settings: { choiceSeconds: Number($('choice-seconds').value), textSeconds: Number($('text-seconds').value) },
+    questions,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -42,7 +45,8 @@ function readForm() {
 // ---------------------------------------------------------------------------
 
 function render() {
-  $('seconds').value = library.settings.secondsPerQuestion;
+  $('choice-seconds').value = library.settings.choiceSeconds;
+  $('text-seconds').value = library.settings.textSeconds;
   const list = $('list');
   list.replaceChildren();
   library.questions.forEach((q) => list.append(questionItem(q)));
@@ -78,10 +82,16 @@ function syncType(li) {
 function renumber() {
   const items = [...$('list').children];
   items.forEach((li, i) => (li.querySelector('.q-index').textContent = `${i + 1}`));
-  const seconds = Number($('seconds').value) || 20;
+  const choiceSeconds = Number($('choice-seconds').value) || 15;
+  const textSeconds = Number($('text-seconds').value) || 20;
+  const types = items.map((li) => li.querySelector('.q-type').value);
+  const choices = types.filter((t) => t === 'choice').length;
+  const texts = types.length - choices;
   // ~15s per question for the reveal + rankings on top of answer time.
-  const minutes = (items.length * (seconds + 15)) / 60;
-  $('summary').textContent = `${items.length} ${items.length === 1 ? 'question' : 'questions'} · roughly ${minutes.toFixed(1)} minutes to play`;
+  const minutes = (choices * (choiceSeconds + 15) + texts * (textSeconds + 15)) / 60;
+  $('summary').textContent =
+    `${items.length} ${items.length === 1 ? 'question' : 'questions'} (${choices} multiple choice, ${texts} free text)` +
+    ` · roughly ${minutes.toFixed(1)} minutes to play`;
 }
 
 // ---------------------------------------------------------------------------
@@ -95,7 +105,10 @@ $('list').addEventListener('input', (event) => {
 });
 
 $('list').addEventListener('change', (event) => {
-  if (event.target.matches('.q-type')) syncType(event.target.closest('.q-item'));
+  if (event.target.matches('.q-type')) {
+    syncType(event.target.closest('.q-item'));
+    renumber();
+  }
 });
 
 $('list').addEventListener('click', (event) => {
@@ -119,10 +132,12 @@ $('list').addEventListener('click', (event) => {
   }
 });
 
-$('seconds').addEventListener('input', () => {
-  renumber();
-  markDirty();
-});
+for (const id of ['choice-seconds', 'text-seconds']) {
+  $(id).addEventListener('input', () => {
+    renumber();
+    markDirty();
+  });
+}
 
 document.querySelectorAll('[data-add]').forEach((btn) =>
   btn.addEventListener('click', () => {
