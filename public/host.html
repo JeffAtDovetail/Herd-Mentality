@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Herd Mentality · Host</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="host">
+      <section class="join-panel">
+        <p class="eyebrow">Herd Mentality</p>
+        <h1>Scan to join the herd</h1>
+        <div class="qr" id="qr" aria-label="QR code to join the game"></div>
+        <p class="join-url" id="join-url">Loading…</p>
+        <p class="status" id="status">Connecting…</p>
+      </section>
+
+      <section class="lobby" aria-live="polite">
+        <div class="lobby-header">
+          <h2>Players in the herd</h2>
+          <span class="count" id="count">0</span>
+        </div>
+        <p class="empty" id="empty">Waiting for the first player to join…</p>
+        <ul class="players" id="players"></ul>
+      </section>
+    </main>
+
+    <script src="/host.js" type="module"></script>
+  </body>
+</html>

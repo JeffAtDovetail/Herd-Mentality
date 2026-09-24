@@ -1,0 +1,19 @@
+{
+  "name": "herd-mentality",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A Herd Mentality-style party game for big meetings: scan a QR code, join from your phone, match the herd.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.21.3"
+  }
+}
