@@ -21,7 +21,10 @@ let clockOffset = 0; // serverNow - Date.now()
 let timerHandle = null;
 
 // Keep the host key on links to other host pages.
-if (key) $('edit-questions').href = `/questions?key=${encodeURIComponent(key)}`;
+if (key) {
+  $('edit-questions').href = `/questions?key=${encodeURIComponent(key)}`;
+  $('llm-test').href = `/llm?key=${encodeURIComponent(key)}`;
+}
 
 // ---------------------------------------------------------------------------
 // Join info (QR code)
@@ -54,7 +57,7 @@ function showPhase(name) {
 
 const PRIMARY = {
   lobby: (s) => ({ label: s.totalQuestions ? `Start game (${s.totalQuestions} questions)` : 'Add questions first', disabled: !s.totalQuestions, action: 'next' }),
-  question: () => ({ label: 'Close answers', action: 'close' }),
+  question: (s) => (s.judging ? { label: 'Counting…', disabled: true, action: 'close' } : { label: 'Close answers', action: 'close' }),
   reveal: (s) => ({ label: s.isLastQuestion ? 'Final results' : 'Show rankings', action: 'next' }),
   leaderboard: () => ({ label: 'Next question', action: 'next' }),
   finished: () => ({ label: 'New game', action: 'restart' }),
@@ -106,10 +109,21 @@ function renderLobby(s) {
     if (document.activeElement !== $(id)) $(id).value = value;
   }
 
+  renderLlmStatus(s.llm);
+
   const list = $('players');
   $('count').textContent = String(s.onlineCount);
   $('empty').hidden = s.players.length > 0;
-  $('lobby-hint').textContent = s.players.length ? 'Click a name to remove it.' : '';
+  const humans = s.players.filter((p) => !p.isBot).length;
+  const botsNeeded = Math.max(0, (s.minPlayers ?? 0) - humans);
+  $('lobby-hint').textContent = [
+    s.players.length ? 'Click a name to remove it.' : '',
+    botsNeeded
+      ? `Fewer than ${s.minPlayers} players — ${botsNeeded} ${botsNeeded === 1 ? 'bot' : 'bots'} will join the herd when you start.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const existing = new Map([...list.children].map((li) => [li.dataset.id, li]));
   const seen = new Set();
@@ -127,6 +141,23 @@ function renderLobby(s) {
     li.title = `${p.connected ? 'Connected' : 'Disconnected'} — click to remove`;
   }
   for (const [id, li] of existing) if (!seen.has(id)) li.remove();
+}
+
+function renderLlmStatus(llm) {
+  const el = $('llm-status');
+  if (!llm) {
+    el.textContent = '';
+    return;
+  }
+  el.dataset.state = llm.state;
+  el.textContent =
+    llm.state === 'disabled'
+      ? 'AI grouping off — free text uses text matching'
+      : llm.state === 'error'
+        ? `AI grouping unavailable (${llm.message}) — free text will use text matching`
+        : llm.state === 'ready'
+          ? `AI grouping ready · ${llm.modelName}`
+          : `AI grouping · ${llm.modelName} (checking…)`;
 }
 
 function kindLabel(q) {
@@ -147,6 +178,13 @@ function renderQuestion(s) {
   }
   $('answered').textContent = String(s.answeredCount);
   $('online').textContent = String(s.onlineCount);
+  $('judging').hidden = !s.judging;
+  $('timer').classList.toggle('judging', s.judging);
+  if (s.judging) {
+    $('timer-text').textContent = '…';
+    $('timer-ring').style.strokeDashoffset = '0';
+    return;
+  }
 
   const ring = $('timer-ring');
   const circumference = 2 * Math.PI * 44;
@@ -198,6 +236,7 @@ function renderReveal(s) {
     : r.answeredCount
       ? 'Everyone gave a different answer — nobody scores.'
       : '';
+  $('r-grouping').textContent = r.groupingNote ?? '';
 }
 
 /** Every free-text answer group, most popular first, with merged spellings shown. */

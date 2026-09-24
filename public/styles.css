@@ -1232,3 +1232,121 @@ button.icon.danger {
   display: flex;
   gap: 10px;
 }
+
+/* ================================================================== */
+/* LLM test page                                                       */
+/* ================================================================== */
+
+.llm-form,
+.llm-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.llm-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.llm-form label.setting {
+  flex-direction: row;
+  align-items: center;
+}
+
+.llm-form textarea,
+.llm-form select,
+.llm-form input {
+  font-weight: 400;
+}
+
+.llm-form textarea {
+  width: 100%;
+  resize: vertical;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.llm-form details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.llm-options {
+  margin-top: 12px;
+}
+
+.llm-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.llm-result {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.llm-result.error {
+  border-color: var(--danger);
+}
+
+.llm-result.error pre {
+  color: var(--danger);
+}
+
+.llm-result pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--font);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+/* AI grouping status + judging state */
+.llm-status {
+  flex-basis: 100%;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.llm-status[data-state='ready']::before {
+  content: '● ';
+  color: var(--accent);
+}
+
+.llm-status[data-state='error']::before {
+  content: '● ';
+  color: var(--gold);
+}
+
+.judging {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--accent);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.timer.judging .ring {
+  stroke: var(--accent-soft);
+}
+
+.grouping-note {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

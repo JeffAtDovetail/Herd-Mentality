@@ -120,10 +120,17 @@ function renderQuestion() {
   }
 
   const answered = state.myAnswer !== null && state.myAnswer !== undefined;
-  $('q-choices').hidden = answered || q.type !== 'choice';
-  $('q-form').hidden = answered || q.type !== 'text';
-  $('q-locked').hidden = !answered;
-  if (answered) $('q-locked-answer').textContent = state.myAnswer;
+  const closed = answered || state.judging;
+  $('q-choices').hidden = closed || q.type !== 'choice';
+  $('q-form').hidden = closed || q.type !== 'text';
+  $('q-locked').hidden = !closed;
+  $('q-locked-label').textContent = answered ? 'Locked in' : 'Time’s up';
+  $('q-locked-answer').textContent = answered ? state.myAnswer : 'No answer';
+  $('q-locked-status').textContent = state.judging ? 'Counting the herd…' : 'Waiting for the rest of the herd…';
+  if (state.judging) {
+    $('q-timer').textContent = '';
+    return;
+  }
 
   const tick = () => {
     const left = Math.max(0, state.deadline - (Date.now() + clockOffset));
