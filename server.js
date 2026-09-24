@@ -158,6 +158,8 @@ const server = http.createServer(async (req, res) => {
   const { pathname } = url;
 
   try {
+    if (pathname === '/healthz') return sendJson(res, 200, { ok: true });
+
     if (pathname === '/api/info') {
       const qrSvg = await QRCode.toString(joinUrl, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
       return sendJson(res, 200, { joinUrl, qrSvg });

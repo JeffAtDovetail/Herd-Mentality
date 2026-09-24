@@ -118,6 +118,57 @@ Delete `data/` for a completely clean slate.
 
 The host screen and question editor only work from the laptop running the server (`localhost`). If a player opens `/` on their phone, they just get a message. To host from another device, use the `?key=…` link printed on startup.
 
+## Hosting on jeffreyhuang.com (Cloudflare Tunnel)
+
+This is on the `prod` branch. The game still runs on your laptop, but a Cloudflare Tunnel publishes it at **https://herd.jeffreyhuang.com**, so phones on any network can join, including mobile data and remote people. Nothing is deployed. Your AWS SSO login, AI grouping and saved game state all keep working, because the server is still your laptop. The tunnel only runs while `npm run prod` is running.
+
+### One-time setup
+
+```bash
+# 1. Install cloudflared (macOS)
+brew install cloudflared
+cloudflared --version
+
+# 2. Log in to Cloudflare. A browser opens: pick the jeffreyhuang.com zone and authorise.
+#    This saves ~/.cloudflared/cert.pem
+cloudflared tunnel login
+
+# 3. Create a named tunnel. This saves its credentials in ~/.cloudflared/<id>.json
+cloudflared tunnel create herd
+
+# 4. Point herd.jeffreyhuang.com at the tunnel (creates a proxied CNAME in Cloudflare DNS)
+cloudflared tunnel route dns herd herd.jeffreyhuang.com
+```
+
+The tunnel credentials live in `~/.cloudflared/`, not in this repo, so there's nothing secret to commit.
+
+### Running it
+
+```bash
+aws sso login --profile dev   # optional: enables AI grouping and LLM bot answers
+npm run prod
+```
+
+`npm run prod` (`scripts/prod.sh`):
+
+- starts the tunnel in the background, logging to `data/cloudflared.log`
+- starts the game with `PUBLIC_URL=https://herd.jeffreyhuang.com`, so the QR code points at your domain
+- checks that `https://herd.jeffreyhuang.com/healthz` is reachable and prints `✓ … is live`
+- stops the tunnel when you stop the game with Ctrl+C
+
+Open the host screen on your laptop at <http://localhost:7420> as usual. From another device, use the `?key=…` host link printed on startup, because anything arriving through the tunnel counts as remote.
+
+**Local-only fallback:** `npm start` still runs the plain LAN version with no tunnel. The `main` branch doesn't have any of this.
+
+**Checks before the meeting:** run `npm run prod`, then scan the QR code with your phone on mobile data (Wi-Fi off) and join.
+
+**Troubleshooting:**
+
+- **"Tunnel 'herd' not found":** redo steps 2–3 of the one-time setup. `cloudflared tunnel list` shows your tunnels.
+- **The site shows a Cloudflare error (1033 or 530):** the tunnel isn't connected. Check `data/cloudflared.log`, and that `npm run prod` is still running.
+- **Wrong or missing DNS record:** in the Cloudflare dashboard, go to jeffreyhuang.com → DNS and check that `herd` is a proxied CNAME to `<tunnel-id>.cfargotunnel.com`.
+- **Different subdomain or tunnel name:** `TUNNEL_NAME=mytunnel PUBLIC_URL=https://game.jeffreyhuang.com npm run prod`.
+
 ## If phones can't connect
 
 - **Same network:** phones must be on the same Wi-Fi as the laptop. Restart the server if the laptop changed networks, because the QR code uses the IP detected at startup.
@@ -177,4 +228,5 @@ npm test      # matching, scoring, Bedrock error and AI-grouping tests
 - `src/llm/grouping.js`: AI merging of free-text answer groups, with text-matching fallback
 - `src/bots.js`: bot names and answers (LLM-generated free text, canned fallback)
 - `scripts/bedrock-smoke.js`: Bedrock setup check
+- `scripts/prod.sh`: runs the game behind the Cloudflare Tunnel (`npm run prod`)
 - `public/`: host screen, phone page and question editor (plain HTML/JS/CSS, no build step)
