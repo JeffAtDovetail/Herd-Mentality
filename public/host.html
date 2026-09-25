@@ -107,8 +107,19 @@
 
     <!-- LEADERBOARD + FINAL -->
     <main class="stage board-stage" id="phase-board" hidden>
+      <!-- Final results: the coronation of the Almighty Cow -->
+      <section class="coronation" id="coronation" hidden>
+        <div class="confetti" id="confetti" aria-hidden="true"></div>
+        <div class="cow-emblem" data-cow></div>
+        <p class="hail">All hail</p>
+        <h1 class="almighty-title" id="almighty-title">The Almighty Cow</h1>
+        <p class="almighty-name" id="almighty-name"></p>
+        <p class="almighty-sub" id="almighty-sub"></p>
+      </section>
+
       <p class="eyebrow" id="b-kind"></p>
       <h1 id="b-title">Rankings</h1>
+      <ol class="leaders" id="leaders"></ol>
       <ol class="top3" id="top3"></ol>
       <ol class="ranks" id="ranks"></ol>
       <p class="empty" id="b-empty" hidden>No players yet.</p>

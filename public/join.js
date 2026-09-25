@@ -162,11 +162,28 @@ function renderReveal() {
 function renderRank() {
   const { you } = state;
   const final = state.phase === 'finished';
-  $('k-label').textContent = final ? 'Final ranking' : 'Your ranking';
-  $('k-rank').textContent = `#${you.rank}`;
-  $('k-detail').textContent =
-    `of ${you.totalPlayers} ${you.totalPlayers === 1 ? 'player' : 'players'} · ${you.score} ${you.score === 1 ? 'point' : 'points'}` +
-    (final ? (you.rank === 1 ? ' — you are the ultimate herd!' : ' — thanks for playing!') : '');
+  const leaders = state.leaders ?? [];
+  const isLeader = leaders.includes(you.name);
+  const card = $('view-rank');
+  card.classList.toggle('almighty', final && isLeader);
+
+  $('k-label').textContent = final
+    ? isLeader
+      ? 'All hail'
+      : 'Final ranking'
+    : isLeader
+      ? 'Frontrunner for Almighty Cow'
+      : 'Your ranking';
+  $('k-rank').textContent = final && isLeader ? 'You are the Almighty Cow!' : `#${you.rank}`;
+  const points = `${you.score} ${you.score === 1 ? 'point' : 'points'}`;
+  const crowned = leaders.length
+    ? `${leaders.length > 1 ? 'The Almighty Cows' : 'The Almighty Cow'}: ${leaders.join(' & ')}.`
+    : 'No Almighty Cow this time.';
+  $('k-detail').textContent = final
+    ? isLeader
+      ? `${points} — you think most like the herd.`
+      : `of ${you.totalPlayers} players · ${points}. ${crowned}`
+    : `of ${you.totalPlayers} ${you.totalPlayers === 1 ? 'player' : 'players'} · ${points}`;
 }
 
 // ---------------------------------------------------------------------------

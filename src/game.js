@@ -554,8 +554,13 @@ export class Game {
       you: null,
     };
 
+    board ??= this.leaderboard();
+    if (s.phase === 'leaderboard' || s.phase === 'finished') {
+      // Who currently holds (or has won) the title of Almighty Cow.
+      view.leaders = board.filter((p) => p.rank === 1 && p.score > 0).map((p) => p.name);
+    }
+
     if (player) {
-      board ??= this.leaderboard();
       const me = board.find((p) => p.id === playerId);
       view.you = { id: player.id, name: player.name, score: me.score, rank: me.rank, totalPlayers: board.length };
     }

@@ -264,28 +264,84 @@ function renderAllAnswers(groups) {
 
 const MEDALS = ['gold', 'silver', 'bronze'];
 
+// An original crowned-cow illustration, used for the frontrunner and the final coronation.
+const COW_SVG = `
+<svg viewBox="0 0 120 120" role="img" aria-label="Crowned cow">
+  <path class="cow-crown" d="M34 30 L40 8 L52 22 L60 4 L68 22 L80 8 L86 30 Z" />
+  <circle class="cow-jewel" cx="60" cy="20" r="3.5" />
+  <path class="cow-horn" d="M30 42 C18 40 14 30 16 24 C22 30 28 32 36 34 Z" />
+  <path class="cow-horn" d="M90 42 C102 40 106 30 104 24 C98 30 92 32 84 34 Z" />
+  <ellipse class="cow-ear" cx="22" cy="54" rx="14" ry="8" transform="rotate(-20 22 54)" />
+  <ellipse class="cow-ear" cx="98" cy="54" rx="14" ry="8" transform="rotate(20 98 54)" />
+  <path class="cow-head" d="M32 38 C32 32 88 32 88 38 L92 80 C92 100 28 100 28 80 Z" />
+  <path class="cow-spot" d="M36 44 C44 40 52 46 48 56 C44 62 36 58 36 52 Z" />
+  <path class="cow-spot" d="M76 42 C84 44 86 52 80 56 C74 58 70 50 76 42 Z" />
+  <circle class="cow-eye" cx="46" cy="62" r="4.5" />
+  <circle class="cow-eye" cx="74" cy="62" r="4.5" />
+  <circle class="cow-glint" cx="47.5" cy="60.5" r="1.4" />
+  <circle class="cow-glint" cx="75.5" cy="60.5" r="1.4" />
+  <ellipse class="cow-snout" cx="60" cy="86" rx="24" ry="15" />
+  <ellipse class="cow-nostril" cx="51" cy="86" rx="3.5" ry="4.5" />
+  <ellipse class="cow-nostril" cx="69" cy="86" rx="3.5" ry="4.5" />
+</svg>`;
+document.querySelectorAll('[data-cow]').forEach((node) => (node.innerHTML = COW_SVG));
+
 function renderBoard(s) {
   const final = s.phase === 'finished';
-  $('b-kind').textContent = final ? 'Final results' : `After question ${s.questionIndex + 1} of ${s.totalQuestions}`;
-  const leaders = s.leaderboard.filter((p) => p.rank === 1);
-  $('b-title').textContent = final
-    ? leaders.length
-      ? `${leaders.map((p) => p.name).join(' & ')} ${leaders.length > 1 ? 'are' : 'is'} the ultimate herd!`
-      : 'Game over'
-    : 'Rankings';
+  const board = s.leaderboard;
+  const leaders = board.filter((p) => p.rank === 1 && p.score > 0);
+  $('b-empty').hidden = board.length > 0;
+  $('coronation').hidden = !final;
 
-  const top = s.leaderboard.filter((p) => p.rank <= 3);
-  const rest = s.leaderboard.filter((p) => p.rank > 3);
-  $('b-empty').hidden = s.leaderboard.length > 0;
+  if (final) {
+    renderCoronation(leaders);
+    $('b-kind').textContent = 'The rest of the herd';
+    $('b-title').hidden = true;
+  } else {
+    $('b-kind').textContent = `After question ${s.questionIndex + 1} of ${s.totalQuestions}`;
+    $('b-title').hidden = false;
+    $('b-title').textContent = leaders.length ? 'Who will be crowned the Almighty Cow?' : 'The throne awaits its Almighty Cow…';
+  }
+
+  // Between questions: podium for the top 3. Final: the winners are on the coronation above,
+  // so the podium starts from the runners-up.
+  const podium = board.filter((p) => p.rank <= 3 && !(final && leaders.includes(p)));
+  const rest = board.filter((p) => p.rank > 3);
+
+  // Frontrunners get their own full-width row with the crowned cow; everyone else on the podium below.
+  const frontrunners = final ? [] : podium.filter((p) => p.rank === 1 && p.score > 0);
+  const others = podium.filter((p) => !frontrunners.includes(p));
+
+  const leadersList = $('leaders');
+  leadersList.replaceChildren();
+  frontrunners.forEach((p, i) => {
+    const li = el('li', 'podium gold frontrunner');
+    li.style.animationDelay = `${i * 120}ms`;
+    const icon = el('span', 'podium-cow');
+    icon.innerHTML = COW_SVG;
+    const text = el('span', 'frontrunner-text');
+    text.append(
+      el('span', 'podium-rank', frontrunners.length > 1 ? 'Joint frontrunner' : 'Frontrunner for Almighty Cow'),
+      el('span', 'podium-name', p.name),
+      scoreEl(p),
+    );
+    li.append(icon, text);
+    leadersList.append(li);
+  });
+  leadersList.hidden = frontrunners.length === 0;
 
   const top3 = $('top3');
   top3.replaceChildren();
-  top.forEach((p, i) => {
+  others.forEach((p, i) => {
     const li = el('li', `podium ${MEDALS[p.rank - 1]}`);
-    li.style.animationDelay = `${(top.length - i) * 120}ms`;
+    li.style.animationDelay = `${(frontrunners.length + i) * 120}ms`;
     li.append(el('span', 'podium-rank', ordinal(p.rank)), el('span', 'podium-name', p.name), scoreEl(p));
     top3.append(li);
   });
+
+  top3.hidden = others.length === 0;
+  if (final) $('b-kind').hidden = podium.length + rest.length === 0;
+  else $('b-kind').hidden = false;
 
   const ranks = $('ranks');
   ranks.replaceChildren();
@@ -294,6 +350,38 @@ function renderBoard(s) {
     li.append(el('span', 'rank-num', String(p.rank)), el('span', 'rank-name', p.name), scoreEl(p));
     ranks.append(li);
   });
+}
+
+function renderCoronation(leaders) {
+  if (!leaders.length) {
+    $('almighty-title').textContent = 'No Almighty Cow this time';
+    $('almighty-name').textContent = '';
+    $('almighty-sub').textContent = 'Nobody managed to follow the herd. Truly independent thinkers.';
+    $('confetti').replaceChildren();
+    return;
+  }
+  const points = leaders[0].score;
+  $('almighty-title').textContent = leaders.length > 1 ? 'The Almighty Cows' : 'The Almighty Cow';
+  $('almighty-name').textContent = leaders.map((p) => p.name).join(' & ');
+  $('almighty-sub').textContent =
+    `${leaders.length > 1 ? 'They think' : 'Thinks'} most like the herd · ${points} ${points === 1 ? 'point' : 'points'}. Bow before ${leaders.length > 1 ? 'them' : 'greatness'}.`;
+  launchConfetti();
+}
+
+function launchConfetti() {
+  const box = $('confetti');
+  box.replaceChildren();
+  const colours = ['var(--gold)', 'var(--accent)', 'var(--bronze)', 'var(--silver)', 'var(--gold)'];
+  for (let i = 0; i < 60; i++) {
+    const bit = el('span', 'confetti-bit');
+    bit.style.left = `${Math.random() * 100}%`;
+    bit.style.background = colours[i % colours.length];
+    bit.style.animationDelay = `${Math.random() * 1.8}s`;
+    bit.style.animationDuration = `${2.6 + Math.random() * 2}s`;
+    bit.style.setProperty('--drift', `${(Math.random() - 0.5) * 160}px`);
+    bit.style.setProperty('--spin', `${(Math.random() - 0.5) * 1080}deg`);
+    box.append(bit);
+  }
 }
 
 function scoreEl(p) {
