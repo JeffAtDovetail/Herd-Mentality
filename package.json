@@ -10,7 +10,9 @@
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.js",
     "bedrock:smoke": "node scripts/bedrock-smoke.js",
-    "prod": "bash scripts/prod.sh"
+    "tunnel:cloudflare": "bash scripts/tunnel-cloudflare.sh",
+    "tunnel:ngrok": "bash scripts/tunnel-ngrok.sh",
+    "prod": "npm run tunnel:cloudflare"
   },
   "engines": {
     "node": ">=20.12"

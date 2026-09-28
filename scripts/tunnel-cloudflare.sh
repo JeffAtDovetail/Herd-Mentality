@@ -1,17 +1,32 @@
 #!/usr/bin/env bash
-# Run the game on this laptop and publish it at https://herd.jeffreyhuang.com through a
+# Run the game on this laptop and publish it on your own domain through a named
 # Cloudflare Tunnel, so phones on any network (mobile data, remote people) can join.
-# One-time setup: see "Hosting on jeffreyhuang.com" in the README.
 #
-#   npm run prod
+#   npm run tunnel:cloudflare      (alias: npm run prod)
 #
-# Override with env vars: TUNNEL_NAME (default herd), PUBLIC_URL, PORT.
+# Needs, in .env or the shell (see README → "Option B"):
+#   CLOUDFLARE_TUNNEL_NAME   e.g. herd
+#   CLOUDFLARE_PUBLIC_URL    e.g. https://herd.example.com
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-TUNNEL_NAME="${TUNNEL_NAME:-herd}"
-export PUBLIC_URL="${PUBLIC_URL:-https://herd.jeffreyhuang.com}"
+# Pick up settings from .env (shell values win).
+if [ -f .env ]; then
+  while IFS='=' read -r key value; do
+    case "$key" in CLOUDFLARE_TUNNEL_NAME|CLOUDFLARE_PUBLIC_URL|PORT)
+      [ -z "${!key:-}" ] && export "$key=$value" ;;
+    esac
+  done < <(grep -E '^[A-Z_]+=' .env)
+fi
+
+TUNNEL_NAME="${CLOUDFLARE_TUNNEL_NAME:-}"
+export PUBLIC_URL="${CLOUDFLARE_PUBLIC_URL:-}"
 export PORT="${PORT:-7420}"
+if [ -z "$TUNNEL_NAME" ] || [ -z "$PUBLIC_URL" ]; then
+  echo "Set CLOUDFLARE_TUNNEL_NAME and CLOUDFLARE_PUBLIC_URL in .env (see README → Option B)."
+  exit 1
+fi
+
 mkdir -p data
 LOG="data/cloudflared.log"
 

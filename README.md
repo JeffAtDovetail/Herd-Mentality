@@ -1,232 +1,282 @@
 # Herd Mentality
 
-A Herd Mentality-style icebreaker for big meetings. Players scan a QR code, join from their phones, and score a point whenever they give the same answer as the majority.
+A Herd Mentality-style icebreaker for big meetings. Players scan a QR code, join from their phones, and score a point whenever they give the same answer as the majority. After each question, the rankings show who's in the running to be crowned **the Almighty Cow**.
 
-## Requirements
+It's a small Node.js app with no build step and no database. It runs on the host's laptop, and there are two ways to let people join:
 
-**To run the game:**
+| | [Option A: local network only](#option-a-local-network-only) | [Option B: online via a tunnel](#option-b-online-via-a-tunnel) |
+| --- | --- | --- |
+| Who can join | Only people on the **same Wi-Fi** as the host laptop | Anyone with the link, on any network (mobile data, remote people) |
+| Needs | Nothing extra | A tunnel tool (Cloudflare Tunnel or ngrok) and an account for it |
+| Command | `npm start` | `npm run tunnel:cloudflare` or `npm run tunnel:ngrok` |
 
-- Node.js 20.12 or newer
-- The laptop and the players' phones on the same network (see [If phones can't connect](#if-phones-cant-connect))
+In both options the server runs on your laptop. Nothing is deployed to a cloud host, and game state is saved on your machine.
 
-**For AI grouping of free-text answers (optional):**
+> **Assumption for both options:** AI features use **Amazon Bedrock with the same AWS setup as Dovetail's `platform` repo**: the `dev` AWS SSO profile, region `us-east-1`, and Claude cross-region inference profiles, with no API keys. If you don't have that access, the game still works; it just falls back to plain text matching (see [AI features and Bedrock](#ai-features-and-bedrock)).
 
-- **AWS CLI v2** with the `dev` SSO profile configured, pointing at your developer AWS account
-- **A fresh SSO login** before you start the game: `aws sso login --profile dev`. Sessions expire after a few hours, so log in again on the day, shortly before the meeting.
-- **Environment:** copy `.env.example` to `.env`, or export `AWS_PROFILE=dev` and `AWS_REGION=us-east-1`
-- **Model access:** Claude Haiku 4.5 (`us.anthropic.claude-haiku-4-5-20251001-v1:0`, used for grouping) must be enabled in that account. Your account already has it.
-- **Check:** run `npm run bedrock:smoke` to confirm everything works
+---
 
-When the server starts, it checks your AWS credentials and prints either `✓ AI grouping ready` or a warning. The host lobby shows the same status under the timers.
-
-The LLM is also used to invent bots' free-text answers, with canned answers as the fallback.
-
-**If the LLM isn't available, the game still works.** A missing or expired login, no network, a Bedrock error, a slow reply (over 8 seconds) or a garbled reply never crashes or stalls the game: that question is grouped by text matching instead, as before. The reveal screen says which method grouped the answers.
-
-## Run it
+## Quick start
 
 ```bash
+git clone <this repo>
+cd herd-mentality
 npm install
-aws sso login --profile dev   # optional: enables AI grouping
+cp .env.example .env            # no secrets in here; see comments inside
+aws sso login --profile dev     # optional: enables AI features (same setup as platform)
 npm start
 ```
 
-Open the **host screen** at <http://localhost:7420> on the laptop running the game, and put it on the projector. Players scan the QR code, or type the join URL printed in the terminal.
+Open the host screen at <http://localhost:7420> on your laptop and put it on the projector. Players scan the QR code.
+
+## Requirements
+
+- **Node.js 20.12+** (`node --version`)
+- **macOS or Linux shell** for the tunnel scripts. The game itself runs anywhere Node does.
+- **Optional, for AI features:**
+  - AWS CLI v2 with the `dev` SSO profile configured, as for the `platform` repo
+  - Access to Claude Haiku 4.5 and Sonnet 4.5 inference profiles in that account
+  - Check with `npm run bedrock:smoke`, which should print a hello from Claude
+- **Option B only:** `cloudflared` or `ngrok`, plus an account for it. Read [Which tunnel to use](#which-tunnel-to-use) first.
+
+---
+
+## Option A: local network only
+
+Everyone must be on the **same Wi-Fi network** as the laptop running the game. Phones on mobile data, and remote people on a video call, can't join this way.
+
+```bash
+aws sso login --profile dev   # optional, if your session has expired
+npm start
+```
+
+The terminal prints the join URL, e.g. `http://192.168.1.42:7420/join`, and the QR code on the host screen points at it.
+
+**Before the meeting, check the network.** Many office and guest Wi-Fi networks block devices from talking to each other (client isolation). Test with your own phone on the same Wi-Fi:
+
+- **The page loads:** you're good.
+- **The page never loads:** the network is blocking it. Use Option B, or ask IT.
+
+**Other issues:**
+
+- **Laptop changed networks:** restart the server. The QR code uses the IP detected at startup.
+- **Wrong IP detected** (VPN, Docker, multiple adapters): `PUBLIC_URL=http://$(ipconfig getifaddr en0):7420 npm start`
+- **macOS firewall:** allow incoming connections for `node` when prompted.
+
+---
+
+## Option B: online via a tunnel
+
+A tunnel gives your laptop's game a public HTTPS address, so people can join from any network. The game still runs on your laptop, and only while the command is running. Stop it with Ctrl+C and the link stops working.
+
+### Which tunnel to use
+
+The original setup used **Cloudflare Tunnel on a personal Cloudflare account and a personal domain** (`herd.jeffreyhuang.com`). That's fine for a one-off, but it isn't a company-managed service.
+
+**If you're running this for Dovetail, use tools and accounts the company already approves.** If Dovetail already uses ngrok, use the company ngrok account. If it uses Cloudflare, use the company Cloudflare account and domain. Otherwise, check with the security or platform team before exposing anything from your laptop. Don't reuse someone else's personal account or domain.
+
+Both tunnels are supported. Pick one:
+
+### B1: ngrok
+
+```bash
+# One-time
+brew install ngrok
+ngrok config add-authtoken <your-token>   # from the ngrok dashboard (company account if there is one)
+
+# Each time
+aws sso login --profile dev               # optional
+npm run tunnel:ngrok
+```
+
+`scripts/tunnel-ngrok.sh` starts ngrok, reads its public URL from ngrok's local API (port 4040), and starts the game with that URL in the QR code. It logs to `data/ngrok.log`.
+
+**Notes:**
+
+- **Link changes each run:** without a reserved domain, ngrok gives a new random URL every time. For a stable link, reserve a domain in the ngrok dashboard and set `NGROK_URL=https://your-name.ngrok.app` in `.env`.
+- **Free plan warning page:** the free plan shows a "You are about to visit…" page the first time each phone opens the link. Players tap **Visit Site** once. Paid plans don't show it.
+
+### B2: Cloudflare Tunnel with your own domain
+
+You need a domain whose DNS is managed in the Cloudflare account you log in with.
+
+```bash
+# One-time
+brew install cloudflared
+cloudflared tunnel login                                 # browser: choose your domain → Authorize
+cloudflared tunnel create herd                           # saves credentials in ~/.cloudflared/
+cloudflared tunnel route dns herd herd.<your-domain>     # creates the DNS record
+```
+
+Add to `.env`:
+
+```bash
+CLOUDFLARE_TUNNEL_NAME=herd
+CLOUDFLARE_PUBLIC_URL=https://herd.<your-domain>
+```
+
+Each time:
+
+```bash
+aws sso login --profile dev    # optional
+npm run tunnel:cloudflare      # (npm run prod is an alias)
+```
+
+`scripts/tunnel-cloudflare.sh`:
+
+- starts the tunnel, logging to `data/cloudflared.log`
+- starts the game with your URL in the QR code
+- prints `✓ https://herd.<your-domain> is live` once `/healthz` answers through the tunnel
+
+Tunnel credentials stay in `~/.cloudflared/`, never in the repo.
+
+**Troubleshooting:**
+
+- **"Tunnel not found":** redo `cloudflared tunnel login` and `create`. `cloudflared tunnel list` shows your tunnels.
+- **Cloudflare error 1033 or 530:** the tunnel isn't connected. Check `data/cloudflared.log`.
+- **No DNS record:** in the Cloudflare dashboard, check that `herd` is a proxied CNAME to `<tunnel-id>.cfargotunnel.com`.
+
+### Security with a tunnel
+
+- **Players:** anyone with the link can join as a player.
+- **Host controls:** the host screen, question editor and LLM test page only work on `localhost`, or with the `?key=…` host link printed at startup. Anything arriving through a tunnel counts as remote, so it needs the key.
+- **Test before the meeting:** switch your phone to mobile data, scan the QR code and join.
+
+---
 
 ## Running the game
 
 | Step | Host screen | Phones |
 | --- | --- | --- |
-| **Lobby** | QR code, the players who've joined (click a name to remove it) and the timers for this game | Enter a name |
+| **Lobby** | QR code, the players who've joined (click a name to remove it), timers and AI status | Enter a name |
 | **Question** | Question, options, countdown and answered count. After a free-text question it briefly shows "Counting the herd…" while the AI groups answers. | Tap an option or type an answer |
 | **Reveal** | Answers as bars; the herd answer is highlighted. Free-text questions also list every answer, with merged spellings. | "You're in the herd! +1" or "You strayed…" |
-| **Rankings** | Top 10, with the top 3 highlighted in gold, silver and bronze | Your rank and points |
-| **Final results** | Winner, plus the top 10 | Your final rank |
+| **Rankings** | "Who will be crowned the Almighty Cow?": frontrunner(s) with a crowned cow, then the podium and the top 10 | Your rank and points |
+| **Final results** | The Almighty Cow's coronation (confetti included), then the rest of the herd | "You are the Almighty Cow!" or your final rank |
 
-- **Advancing:** use the green button (top right), or press **Space**, **Enter** or **→** to drive it like a slide deck.
-- **Timers:** multiple-choice questions default to 15 seconds and free-text questions to 20. Change either in the **Timers for this game** box in the lobby before you start; the change is saved and used for the game you start next.
+- **Advancing:** use the green button (top right), or press **Space**, **Enter** or **→**.
+- **Timers:** multiple choice defaults to 15 seconds and free text to 20. Change them in the lobby before starting.
 - **Closing answers:** answers close when the timer runs out, when every connected player has answered, or when you click **Close answers**.
-- **Bots:** if fewer than 3 people have joined when you start, bots such as "Bessie (bot)" join to make up the numbers. They answer after a few seconds: a random option for multiple choice, and for free text a realistic answer generated by Claude (or a canned answer if Bedrock isn't available). They score like everyone else, and are removed when you restart; they come back at the next start only if still needed.
-- **Late joiners:** people can join mid-game. The question screen shows a small QR code, and late joiners play from the next question.
+- **Bots:** with fewer than 3 players at the start, bots such as "Bessie (bot)" fill in. They're removed on restart.
+- **Late joiners** can join mid-game and play from the next question.
 - **Host menu (•••):**
   - **Edit questions:** lobby only.
-  - **Restart game (keep players):** back to the lobby with scores reset, and everyone stays joined.
+  - **Restart game (keep players):** back to the lobby with scores reset.
   - **Reset everything:** also clears all players.
+  - **LLM test:** try prompts against Bedrock.
+- **Before a real session:** open ••• and click **Reset everything** to clear test players, because the game resumes from its saved state.
 
 ### Scoring
 
 - **The herd:** everyone who gave the most popular answer gets 1 point.
 - **Ties:** if two or more answers tie for most popular, all of them score.
 - **No herd:** if two or more people answered and nobody shares an answer, nobody scores.
-- **Only one answer:** if only one person answered, they're the herd and score. With bots filling small games, this rarely happens.
-- **No answer:** not answering in time scores nothing.
-- **Ranks:** tied scores share a rank (1, 2, 2, 4).
+- **Only one answer:** a lone answerer is their own herd and scores.
+- **Ranks:** tied scores share a rank (1, 2, 2, 4). The top-ranked player at the end is **the Almighty Cow**.
 
-### Free-text matching
+### Questions
 
-Free-text answers are grouped in two passes.
+The default 13 questions live in `src/default-questions.js`: 9 multiple choice, then 4 free text. Some are Dovetail-specific, such as values and meeting rooms, so change them for your audience.
 
-**1. Text matching (always runs).** Answers are normalised first: case, accents, punctuation and a leading "a/an/the" are ignored. Answers that are then a character or two apart count as the same answer:
+- **Editing:** use ••• → **Edit questions** to add, remove or reorder questions, edit options (2–24) and set timers. Edits save to `data/questions.json`; **Reset to defaults** restores the built-in set.
+- **Length:** for about 5 minutes, use 6–8 questions. The editor shows a play-time estimate.
 
-| Shortest answer length | Differences allowed | Example |
+---
+
+## AI features and Bedrock
+
+**Assumption:** the AI features use Amazon Bedrock with the **same infrastructure as Dovetail's `platform` repo**:
+
+- **Credentials:** the AWS SDK default credential chain, which locally resolves to the `dev` SSO profile for your developer AWS account. There are **no API keys or secrets** anywhere in this repo.
+- **Region:** `AWS_REGION=us-east-1`
+- **Models:** cross-region inference profiles that are already enabled there. Invocation logging is configured on the account side.
+
+**What the AI does:**
+
+| Feature | Model (default) | Without Bedrock |
 | --- | --- | --- |
-| 1–3 letters | 0 | `cat` ≠ `car` |
-| 4–6 letters | 1 | `guitar` = `guiter`, `japan` = `japn` |
-| 7+ letters | 2 | `pepperoni` = `peperoni`, `pancakes` = `pancakse` |
+| Groups free-text answers that mean the same thing ("Obama" = "Barack Obama") | Claude Haiku 4.5 | Text matching only (typos and plurals) |
+| Invents realistic free-text answers for bots | Claude Haiku 4.5 | Canned answers |
+| LLM test page (`/llm`) and `npm run bedrock:smoke` | Claude Sonnet 4.5 | Shows an error |
 
-This lives in `src/matching.js`.
+**The game never depends on Bedrock.** Any failure falls back to text matching, including a missing or expired login, network issues, Bedrock errors, a reply slower than 8 seconds or a garbled reply. The reveal screen says which method grouped the answers. At startup the terminal prints `✓ AI grouping ready` or a warning, and the host lobby shows the same status.
 
-**2. AI grouping (when Bedrock is available).** Claude Haiku 4.5 gets the text-matched groups and merges ones that mean the same thing, such as "Obama" = "Barack Obama" or "USA" = "United States". It keeps different things apart, such as "Toast" and "French toast". It can only merge existing groups; its reply is validated, and every player keeps exactly one answer. If it fails or takes more than 8 seconds, the text-matching groups are used. This lives in `src/llm/grouping.js`.
+**Setup:**
 
-## Questions
+1. Run `aws sso login --profile dev`. Sessions last a few hours, so log in shortly before you host.
+2. Make sure `.env` has `AWS_PROFILE=dev` and `AWS_REGION=us-east-1` (copied from `.env.example`).
+3. Run `npm run bedrock:smoke` to check. Expired sessions report "AWS SSO session expired or missing — run `aws sso login --profile dev`".
 
-The default set of 13 lives in `src/default-questions.js`: 9 multiple choice, then 4 free text. From the host screen, open **••• → Edit questions** to add, remove or reorder questions, change options (any number from 2 to 24), and set both timers. Your edits are saved to `data/questions.json`, and **Reset to defaults** brings back the built-in set. Every game uses the current question list.
+**Models** (inference profile IDs):
 
-For a ~5 minute icebreaker, aim for 6–8 questions. The 13 defaults take roughly 7 minutes, so trim a few if you're tight on time. The editor shows a play-time estimate as you edit.
-
-## Storage
-
-There's no database. Everything is saved as JSON in `data/` (git-ignored) after every change:
-
-| File | Contents |
+| Model | ID |
 | --- | --- |
-| `data/game.json` | The current game: players, answers, results and phase. If the server crashes or you restart it, it resumes exactly where it was, including a running countdown. |
-| `data/questions.json` | Your edited question list and timers |
-| `data/games/*.json` | An archive of each finished or restarted game, with its final leaderboard |
-| `data/host-key.json` | The key for hosting from another device |
+| Claude Sonnet 4.5 (`BEDROCK_MODEL_ID` default) | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` |
+| Claude Haiku 4.5 (`LLM_GROUPING_MODEL_ID` default) | `us.anthropic.claude-haiku-4-5-20251001-v1:0` |
+| Claude Sonnet 4 | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
 
-Delete `data/` for a completely clean slate.
+Bedrock is only ever called from the server. Browsers talk to this server, never to AWS.
+
+---
 
 ## Configuration
 
+Set these in `.env` or in the shell. `.env.example` lists them all.
+
 | Env var | Default | What it does |
 | --- | --- | --- |
-| `PORT` | `7420` | Port to listen on. Chosen to avoid ports used by other local repos. |
-| `HOST` | `0.0.0.0` | Interface to bind. It needs to be `0.0.0.0` so phones on the Wi-Fi can connect. |
-| `PUBLIC_URL` | auto-detected LAN URL | Base URL put in the QR code, e.g. a tunnel URL or a manually chosen LAN IP |
-| `HOST_KEY` | random, saved in `data/` | Key for the host screen when it isn't opened on the laptop itself |
+| `PORT` | `7420` | Port to listen on |
+| `HOST` | `0.0.0.0` | Interface to bind. It needs to be `0.0.0.0` for phones on the Wi-Fi to connect. |
+| `PUBLIC_URL` | auto-detected LAN URL | Base URL in the QR code. The tunnel scripts set it for you. |
+| `HOST_KEY` | random, saved in `data/` | Key for host controls from another device |
 | `DATA_DIR` | `./data` | Where game state is saved |
-| `AWS_PROFILE` / `AWS_REGION` | none / `us-east-1` | AWS SSO profile and Bedrock region (see [Using Bedrock locally](#using-bedrock-locally)) |
-| `LLM_GROUPING` | on | Set to `off` to skip AI grouping and always use text matching |
-| `LLM_GROUPING_MODEL_ID` | Haiku 4.5 | Inference profile used to group free-text answers |
-| `LLM_TIMEOUT_MS` | `8000` | Maximum wait for AI grouping before falling back to text matching |
-| `BOTS_MIN_PLAYERS` | `3` | Bots fill the game up to this many players at the start; `0` turns bots off |
-| `LLM_BOTS` | on | Set to `off` to give bots canned free-text answers instead of LLM ones |
-| `BEDROCK_MODEL_ID` | Sonnet 4.5 | Default model for the LLM test page and smoke test |
+| `AWS_PROFILE` / `AWS_REGION` | none / `us-east-1` | AWS SSO profile and Bedrock region |
+| `LLM_GROUPING` | on | `off` means free text always uses text matching |
+| `LLM_GROUPING_MODEL_ID` | Haiku 4.5 | Model for answer grouping and bot answers |
+| `LLM_TIMEOUT_MS` | `8000` | Maximum wait for AI grouping before falling back |
+| `BOTS_MIN_PLAYERS` | `3` | Bots fill the game up to this many players (`0` turns bots off) |
+| `LLM_BOTS` | on | `off` gives bots canned answers only |
+| `BEDROCK_MODEL_ID` | Sonnet 4.5 | Model for the LLM test page and smoke test |
+| `CLOUDFLARE_TUNNEL_NAME` / `CLOUDFLARE_PUBLIC_URL` | none | Used by `npm run tunnel:cloudflare` |
+| `NGROK_URL` | none | Reserved ngrok domain, used by `npm run tunnel:ngrok` |
 
-### Host access
+## Storage
 
-The host screen and question editor only work from the laptop running the server (`localhost`). If a player opens `/` on their phone, they just get a message. To host from another device, use the `?key=…` link printed on startup.
+There's no database. State is saved as JSON in `data/` (git-ignored) after every change, so a crash or restart resumes exactly where it was.
 
-## Hosting on jeffreyhuang.com (Cloudflare Tunnel)
-
-This is on the `prod` branch. The game still runs on your laptop, but a Cloudflare Tunnel publishes it at **https://herd.jeffreyhuang.com**, so phones on any network can join, including mobile data and remote people. Nothing is deployed. Your AWS SSO login, AI grouping and saved game state all keep working, because the server is still your laptop. The tunnel only runs while `npm run prod` is running.
-
-### One-time setup
-
-```bash
-# 1. Install cloudflared (macOS)
-brew install cloudflared
-cloudflared --version
-
-# 2. Log in to Cloudflare. A browser opens: pick the jeffreyhuang.com zone and authorise.
-#    This saves ~/.cloudflared/cert.pem
-cloudflared tunnel login
-
-# 3. Create a named tunnel. This saves its credentials in ~/.cloudflared/<id>.json
-cloudflared tunnel create herd
-
-# 4. Point herd.jeffreyhuang.com at the tunnel (creates a proxied CNAME in Cloudflare DNS)
-cloudflared tunnel route dns herd herd.jeffreyhuang.com
-```
-
-The tunnel credentials live in `~/.cloudflared/`, not in this repo, so there's nothing secret to commit.
-
-### Running it
-
-```bash
-aws sso login --profile dev   # optional: enables AI grouping and LLM bot answers
-npm run prod
-```
-
-`npm run prod` (`scripts/prod.sh`):
-
-- starts the tunnel in the background, logging to `data/cloudflared.log`
-- starts the game with `PUBLIC_URL=https://herd.jeffreyhuang.com`, so the QR code points at your domain
-- checks that `https://herd.jeffreyhuang.com/healthz` is reachable and prints `✓ … is live`
-- stops the tunnel when you stop the game with Ctrl+C
-
-Open the host screen on your laptop at <http://localhost:7420> as usual. From another device, use the `?key=…` host link printed on startup, because anything arriving through the tunnel counts as remote.
-
-**Local-only fallback:** `npm start` still runs the plain LAN version with no tunnel. The `main` branch doesn't have any of this.
-
-**Checks before the meeting:** run `npm run prod`, then scan the QR code with your phone on mobile data (Wi-Fi off) and join.
-
-**Troubleshooting:**
-
-- **"Tunnel 'herd' not found":** redo steps 2–3 of the one-time setup. `cloudflared tunnel list` shows your tunnels.
-- **The site shows a Cloudflare error (1033 or 530):** the tunnel isn't connected. Check `data/cloudflared.log`, and that `npm run prod` is still running.
-- **Wrong or missing DNS record:** in the Cloudflare dashboard, go to jeffreyhuang.com → DNS and check that `herd` is a proxied CNAME to `<tunnel-id>.cfargotunnel.com`.
-- **Different subdomain or tunnel name:** `TUNNEL_NAME=mytunnel PUBLIC_URL=https://game.jeffreyhuang.com npm run prod`.
-
-## If phones can't connect
-
-- **Same network:** phones must be on the same Wi-Fi as the laptop. Restart the server if the laptop changed networks, because the QR code uses the IP detected at startup.
-- **Wrong IP detected** (VPN, Docker, multiple adapters): `PUBLIC_URL=http://$(ipconfig getifaddr en0):7420 npm start`
-- **macOS firewall:** allow incoming connections for `node`.
-- **Client isolation** on office or guest Wi-Fi: use a tunnel.
-  ```bash
-  cloudflared tunnel --url http://localhost:7420
-  PUBLIC_URL=https://<random>.trycloudflare.com npm start
-  ```
-
-## Using Bedrock locally
-
-The game calls Claude on Amazon Bedrock to group free-text answers, and has a test page for trying prompts. There are **no API keys**: credentials come from the AWS SDK default provider chain, which locally resolves to the `dev` SSO profile.
-
-1. Log in. The session expires after a few hours, so repeat this when it does.
-   ```bash
-   aws sso login --profile dev
-   ```
-2. Set the environment by copying `.env.example` to `.env` (it's git-ignored and holds no secrets), or export the variables in your shell:
-   ```bash
-   AWS_PROFILE=dev
-   AWS_REGION=us-east-1
-   BEDROCK_MODEL_ID=us.anthropic.claude-sonnet-4-5-20250929-v1:0
-   ```
-3. Check your setup with `npm run bedrock:smoke`, which sends "Say hello" and prints the reply. Pass a model ID to try another model: `npm run bedrock:smoke -- us.anthropic.claude-haiku-4-5-20251001-v1:0`.
-4. Try prompts at <http://localhost:7420/llm> (or ••• → LLM test). Each send is a single request with no history. You can choose the model, add a system prompt, and set max tokens and temperature. The page is host-only, and the browser only talks to this server: Bedrock is called server-side with the credentials on your machine.
-
-**Changing models:** set `LLM_GROUPING_MODEL_ID` (answer grouping, default Haiku 4.5) or `BEDROCK_MODEL_ID` (test page and smoke test, default Sonnet 4.5) to a cross-region inference profile ID. These three are built in and can be picked on the test page:
-
-| Model | Inference profile ID |
+| File | Contents |
 | --- | --- |
-| Claude Sonnet 4.5 (default) | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` |
-| Claude Haiku 4.5 | `us.anthropic.claude-haiku-4-5-20251001-v1:0` |
-| Claude Sonnet 4 | `us.anthropic.claude-sonnet-4-20250514-v1:0` |
+| `data/game.json` | Current game: players, answers, results, phase |
+| `data/questions.json` | Your edited questions and timers |
+| `data/games/*.json` | Archive of each finished or restarted game, with its leaderboard |
+| `data/host-key.json` | Host key for remote host access |
 
-**Errors:**
+Delete `data/` for a clean slate.
 
-- Expired or missing SSO sessions show "AWS SSO session expired or missing — run `aws sso login --profile dev`".
-- Access problems name the model and region.
-- Throttling is retried automatically, using the SDK's adaptive retries with up to 4 attempts.
+---
 
-The client and the `converse()` helper live in `src/llm/bedrock.js`; answer grouping is in `src/llm/grouping.js`.
-
-## Development
+## Building on top of this
 
 ```bash
 npm run dev   # restarts on file changes
-npm test      # matching, scoring, Bedrock error and AI-grouping tests
+npm test      # unit tests: matching, scoring, bots, Bedrock errors, AI grouping
 ```
 
-- `server.js`: HTTP routes, the WebSocket protocol, host access
-- `src/game.js`: game state machine, scoring, host and player views
-- `src/matching.js`: free-text normalisation and fuzzy grouping
-- `src/store.js`: JSON file persistence
-- `src/llm/bedrock.js`: the Bedrock client and `converse()` helper (Converse API)
-- `src/llm/grouping.js`: AI merging of free-text answer groups, with text-matching fallback
-- `src/bots.js`: bot names and answers (LLM-generated free text, canned fallback)
-- `scripts/bedrock-smoke.js`: Bedrock setup check
-- `scripts/prod.sh`: runs the game behind the Cloudflare Tunnel (`npm run prod`)
-- `public/`: host screen, phone page and question editor (plain HTML/JS/CSS, no build step)
+| Path | What's there |
+| --- | --- |
+| `server.js` | HTTP routes, WebSocket protocol, host access, LLM test route |
+| `src/game.js` | Game state machine, scoring, bots, host and player views |
+| `src/default-questions.js` | Default questions and timers |
+| `src/matching.js` | Free-text normalisation and typo-tolerant grouping |
+| `src/llm/bedrock.js` | Bedrock client and `converse()` helper (Converse API), error mapping |
+| `src/llm/grouping.js` | AI merging of answer groups, with text-matching fallback |
+| `src/bots.js` | Bot names and answers (LLM with canned fallback) |
+| `src/store.js` | JSON file persistence |
+| `public/` | Host screen, phone page, question editor, LLM test page (plain HTML/CSS/JS) |
+| `scripts/` | Bedrock smoke test and the tunnel scripts |
+
+Conventions:
+
+- **Plain ESM JavaScript**, with no framework or bundler.
+- **Keep Bedrock calls server-side**, and keep the fallback behaviour so the game never depends on the LLM.
+- **Add a test** in `test/` for any scoring or matching change.
